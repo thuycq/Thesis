@@ -2176,9 +2176,21 @@ def admin_dashboard():
                 else:
                     st.dataframe(df_debug, use_container_width=True)
 
-    if st.button("Đăng xuất"):
-        st.session_state.clear()
-        st.rerun()
+    st.divider()
+    st.subheader("Sao lưu dữ liệu")
+
+    backup_path = DB_PATH
+
+    if os.path.exists(backup_path):
+        with open(backup_path, "rb") as f:
+            st.download_button(
+                label="Tải file backup database",
+                data=f,
+                file_name="kltn_backup.db",
+                mime="application/octet-stream"
+            )
+    else:
+        st.warning(f"Không tìm thấy file database: {backup_path}")
 
 def lecturer_dashboard():
 
