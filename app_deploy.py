@@ -5,7 +5,6 @@ import os
 import streamlit as st
 import sqlite3
 import pandas as pd
-import psycopg2
 
 DB_PATH = os.getenv("DB_PATH", "data/kltn.db")
 
@@ -14,9 +13,7 @@ DB_PATH = os.getenv("DB_PATH", "data/kltn.db")
 # ==============================================================================
 
 def get_connection():
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+    return sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
 
 
 def ensure_student_columns(new_columns):
