@@ -7,6 +7,8 @@ import sqlite3
 import pandas as pd
 
 DB_PATH = os.getenv("DB_PATH", "data/kltn.db")
+import shutil
+from datetime import datetime
 
 # ==============================================================================
 # DATABASE_AND_SCHEMA
@@ -1966,6 +1968,18 @@ def login_page():
             st.error("Sai tên đăng nhập hoặc mật khẩu")
 
 def admin_dashboard():
+    # Auto backup mỗi ngày
+    backup_folder = "backup"
+    os.makedirs(backup_folder, exist_ok=True)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    backup_file = f"{backup_folder}/kltn_backup_{today}.db"
+
+    if os.path.exists(DB_PATH) and not os.path.exists(backup_file):
+        try:
+            shutil.copy(DB_PATH, backup_file)
+        except Exception as e:
+            st.warning(f"Backup lỗi: {e}")
     st.title("Admin Dashboard")
     st.write(f"Xin chào: {st.session_state['username']}")
 
