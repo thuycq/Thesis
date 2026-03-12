@@ -2193,18 +2193,19 @@ def admin_dashboard():
     st.divider()
     st.subheader("Sao lưu dữ liệu")
 
-    backup_path = DB_PATH
+    # Auto backup mỗi lần admin login
+    backup_folder = "backup"
+    os.makedirs(backup_folder, exist_ok=True)
 
-    if os.path.exists(backup_path):
-        with open(backup_path, "rb") as f:
-            st.download_button(
-                label="Tải file backup database",
-                data=f,
-                file_name="kltn_backup.db",
-                mime="application/octet-stream"
-            )
-    else:
-        st.warning(f"Không tìm thấy file database: {backup_path}")
+    backup_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    backup_file = f"{backup_folder}/kltn_backup_{backup_time}.db"
+
+    if os.path.exists(DB_PATH):
+        try:
+            shutil.copy(DB_PATH, backup_file)
+            st.caption(f"Backup created: {backup_file}")
+        except Exception as e:
+            st.warning(f"Backup lỗi: {e}")
     
     if st.button("Đăng xuất"):
         st.session_state.clear()
