@@ -2205,6 +2205,10 @@ def admin_dashboard():
             )
     else:
         st.warning(f"Không tìm thấy file database: {backup_path}")
+    
+    if st.button("Đăng xuất"):
+        st.session_state.clear()
+        st.rerun()
 
 def lecturer_dashboard():
 
