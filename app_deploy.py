@@ -261,6 +261,94 @@ def import_students(df):
 
 
         return inserted_count, skipped_count
+
+def get_students_for_admin_edit():
+
+    with get_connection() as conn:
+        query = """
+            SELECT
+                s.id,
+                s.mssv AS "MSSV",
+                s.full_name AS "Họ tên SV",
+                s.class_name AS "Lớp",
+                l.full_name AS "GVHD",
+                s.project_type AS "Loại môn đăng ký học"
+            FROM students s
+            LEFT JOIN lecturers l
+                ON s.gvhd_id = l.id
+            ORDER BY s.mssv
+        """
+        df = pd.read_sql_query(query, conn)
+
+    return df
+
+def save_students_admin_edit(edited_df):
+
+    if edited_df.empty:
+        return 0, 0
+
+    updated_count = 0
+    inserted_count = 0
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        for _, row in edited_df.iterrows():
+
+            student_id = row.get("id")
+            mssv = str(row.get("MSSV", "")).strip()
+            full_name = str(row.get("Họ tên SV", "")).strip()
+            class_name = str(row.get("Lớp", "")).strip()
+            gvhd_name = str(row.get("GVHD", "")).strip()
+            project_type = str(row.get("Loại môn đăng ký học", "")).strip().upper()
+
+            if not mssv or not full_name:
+                continue
+
+            if project_type not in ["BCTT", "KLTN", "BC-KL"]:
+                continue
+
+            cursor.execute(
+                "SELECT id FROM lecturers WHERE TRIM(full_name) = ?",
+                (gvhd_name,)
+            )
+            lecturer = cursor.fetchone()
+
+            gvhd_id = lecturer[0] if lecturer else None
+
+            if pd.isna(student_id) or student_id in ["", None]:
+                cursor.execute(
+                    """
+                    INSERT INTO students (
+                        mssv,
+                        full_name,
+                        class_name,
+                        gvhd_id,
+                        project_type
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (mssv, full_name, class_name, gvhd_id, project_type)
+                )
+                inserted_count += 1
+            else:
+                cursor.execute(
+                    """
+                    UPDATE students
+                    SET
+                        mssv = ?,
+                        full_name = ?,
+                        class_name = ?,
+                        gvhd_id = ?,
+                        project_type = ?
+                    WHERE id = ?
+                    """,
+                    (mssv, full_name, class_name, gvhd_id, project_type, int(student_id))
+                )
+                updated_count += 1
+
+    return updated_count, inserted_count
+    
 def import_bctt_submission_data(df):
 
     required_columns = ["MSSV", "Ngôn ngữ BCTT"]
@@ -2101,7 +2189,54 @@ def admin_dashboard():
                         st.warning(f"Bỏ qua {skipped_count} dòng do MSSV hoặc giảng viên không khớp")
 
             except Exception as e:
-                st.error(f"Lỗi khi đọc file Excel: {e}")                
+                st.error(f"Lỗi khi đọc file Excel: {e}")
+            st.divider()
+            st.subheader("Chỉnh sửa dữ liệu sinh viên sau import")
+
+            df_students_edit = get_students_for_admin_edit()
+            df_lecturers = get_all_lecturers()
+
+            lecturer_names = []
+            if not df_lecturers.empty:
+                lecturer_names = sorted(
+                    df_lecturers["full_name"].dropna().astype(str).str.strip().unique().tolist()
+                )
+    
+            if df_students_edit.empty:
+                st.info("Chưa có dữ liệu sinh viên để chỉnh sửa")
+            else:
+    
+                edited_students_df = st.data_editor(
+                    df_students_edit,
+                    use_container_width=True,
+                    hide_index=True,
+                    num_rows="dynamic",
+                    column_config={
+                        "id": None,
+                        "MSSV": st.column_config.TextColumn("MSSV", required=True),
+                        "Họ tên SV": st.column_config.TextColumn("Họ tên SV", required=True),
+                        "Lớp": st.column_config.TextColumn("Lớp"),
+                        "GVHD": st.column_config.SelectboxColumn(
+                            "GVHD",
+                            options=lecturer_names
+                        ),
+                        "Loại môn đăng ký học": st.column_config.SelectboxColumn(
+                            "Loại môn đăng ký học",
+                            options=["BCTT", "KLTN", "BC-KL"]
+                        )
+                    },
+                    disabled=["id"],
+                    key="admin_students_editor"
+                )
+    
+                if st.button("Lưu chỉnh sửa sinh viên"):
+                    updated_count, inserted_count = save_students_admin_edit(edited_students_df)
+    
+                    st.success(
+                        f"Đã cập nhật {updated_count} dòng, thêm mới {inserted_count} sinh viên"
+                    )
+
+                    st.rerun()
     with tab4:
 
         st.subheader("Tổng hợp phân công")
