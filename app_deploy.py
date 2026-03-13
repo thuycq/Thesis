@@ -723,11 +723,11 @@ def get_admin_assignment_stats_data():
         project_type = normalize_text(row.get("project_type", ""))
         class_name = row.get("class_name", "")
 
-        gvhd_name = str(row.get("gvhd_name", "")).strip()
-        gvpb_name = str(row.get("gvpb_name", "")).strip()
-        cthd_name = str(row.get("cthd_name", "")).strip()
-        tvhd_name = str(row.get("tvhd_name", "")).strip()
-        tkhd_name = str(row.get("tkhd_name", "")).strip()
+        gvhd_name = "" if pd.isna(row.get("gvhd_name", "")) else str(row.get("gvhd_name", "")).strip()
+        gvpb_name = "" if pd.isna(row.get("gvpb_name", "")) else str(row.get("gvpb_name", "")).strip()
+        cthd_name = "" if pd.isna(row.get("cthd_name", "")) else str(row.get("cthd_name", "")).strip()
+        tvhd_name = "" if pd.isna(row.get("tvhd_name", "")) else str(row.get("tvhd_name", "")).strip()
+        tkhd_name = "" if pd.isna(row.get("tkhd_name", "")) else str(row.get("tkhd_name", "")).strip()
 
         bctt_language = row.get("bctt_language", "")
         kltn_language = row.get("kltn_language", "")
@@ -742,24 +742,24 @@ def get_admin_assignment_stats_data():
             if bucket in bucket_display_map:
                 result.loc[gvhd_name, ("Hướng dẫn KLTN", bucket_display_map[bucket])] += 1
 
-        if project_type in ["KLTN", "BC-KL"] and gvpb_name:
+        if project_type in ["KLTN", "BC-KL"] and gvpb_name not in ["", "None", "nan"]:
             bucket = get_workload_bucket(class_name, kltn_language)
-            if bucket in bucket_display_map:
+            if bucket in bucket_display_map and gvpb_name in result.index:
                 result.loc[gvpb_name, ("Phản biện", bucket_display_map[bucket])] += 1
 
-        if project_type in ["KLTN", "BC-KL"] and cthd_name:
+        if project_type in ["KLTN", "BC-KL"] and cthd_name not in ["", "None", "nan"]:
             bucket = get_workload_bucket(class_name, kltn_language)
-            if bucket in bucket_display_map:
+            if bucket in bucket_display_map and cthd_name in result.index:
                 result.loc[cthd_name, ("Chủ tịch HĐ", bucket_display_map[bucket])] += 1
 
-        if project_type in ["KLTN", "BC-KL"] and tvhd_name:
+        if project_type in ["KLTN", "BC-KL"] and tvhd_name not in ["", "None", "nan"]:
             bucket = get_workload_bucket(class_name, kltn_language)
-            if bucket in bucket_display_map:
+            if bucket in bucket_display_map and tvhd_name in result.index:
                 result.loc[tvhd_name, ("Ủy viên HĐ", bucket_display_map[bucket])] += 1
 
-        if project_type in ["KLTN", "BC-KL"] and tkhd_name:
+        if project_type in ["KLTN", "BC-KL"] and tkhd_name not in ["", "None", "nan"]:
             bucket = get_workload_bucket(class_name, kltn_language)
-            if bucket in bucket_display_map:
+            if bucket in bucket_display_map and tkhd_name in result.index:
                 result.loc[tkhd_name, ("Thư ký HĐ", bucket_display_map[bucket])] += 1
 
     result = result.reset_index()
